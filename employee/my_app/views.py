@@ -6,6 +6,10 @@ from .forms import Profile, Experience, Qualifications, Projects
 import json
 from django.urls import reverse_lazy
 from django.views.generic.edit import DeleteView
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .serializer import UserProfileSerializer,WorkExperienceSerializer,QualificationSerializer,ProjectSerializer
 
 def listEmployees(request):
     try:
@@ -14,49 +18,7 @@ def listEmployees(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)  # Return error if there's any exception
 
-# Create a new employee via AJAX
-@require_POST
-def createEmployee(request):
-    try:
-        data = json.loads(request.body)  # Parse JSON data from the request body
-        profileForm = Profile(data)  # Bind the data to the Profile form
 
-        if profileForm.is_valid():  # Check if the form data is valid
-            employee = profileForm.save()  # Save the employee profile
-
-            # Process additional fields (work experience, qualifications, projects) if provided
-            work_experience = data.get('work_experience')
-            if work_experience:
-                for experience in work_experience:
-                    experienceForm = Experience(experience)
-                    if experienceForm.is_valid():
-                        experience_instance = experienceForm.save(commit=False)
-                        experience_instance.user_profile = employee  # Assign employee to experience
-                        experience_instance.save()
-
-            qualifications = data.get('qualifications')
-            if qualifications:
-                for qualification in qualifications:
-                    qualificationForm = Qualifications(qualification)
-                    if qualificationForm.is_valid():
-                        qualification_instance = qualificationForm.save(commit=False)
-                        qualification_instance.user_profile = employee  # Assign employee to qualification
-                        qualification_instance.save()
-
-            projects = data.get('projects')
-            if projects:
-                for project in projects:
-                    projectForm = Projects(project)
-                    if projectForm.is_valid():
-                        project_instance = projectForm.save(commit=False)
-                        project_instance.user_profile = employee  # Assign employee to project
-                        project_instance.save()
-
-            return JsonResponse({'message': 'Employee created successfully!'}, status=200)
-        else:
-            return JsonResponse({'error': profileForm.errors}, status=400)  # Return form validation errors
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)  # Return error if there's an exception
 
 # Update an existing employee via AJAX
 @require_POST
@@ -96,14 +58,7 @@ def deleteEmployee(request, employeeId):
 
 
 
-
-
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .serializer import UserProfileSerializer,WorkExperienceSerializer,QualificationSerializer,ProjectSerializer
-
-
+# register emplayee
 class CreateEmployeeView(APIView):
     def post(self, request, *args, **kwargs):
         try:
@@ -135,6 +90,8 @@ class CreateEmployeeView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+# get employee details as per your requirement
+        
 class GetEmployeeView(APIView):
     def get(self, request, *args, **kwargs):
         try:
@@ -156,7 +113,7 @@ class GetEmployeeView(APIView):
 
 
 
-
+# update view 
 class UpdateEmployeeView(APIView):
     def put(self, request, *args, **kwargs):
         employee_id = kwargs.get('pk')
@@ -183,17 +140,13 @@ class UpdateEmployeeView(APIView):
 
         
 
-
-class EmployeeDeleteView(DeleteView):
-    model = UserProfile
-    success_url = reverse_lazy('employee_list')  # Redirect URL after successful deletion
-
-    def delete(self, request, *args, **kwargs):
+class EmployeeDeleteView(APIView):
+    def delete(self, request, pk, format=None):
         try:
-            # Call the parent delete method
-            response = super().delete(request, *args, **kwargs)
-            return JsonResponse({"message": "Employee deleted successfully."}, status=200)
+            user_profile = UserProfile.objects.get(pk=pk)
+            user_profile.delete()
+            return Response({"message": "Employee deleted successfully."}, status=status.HTTP_200_OK)
         except UserProfile.DoesNotExist:
-            return JsonResponse({"error": "Employee not found."}, status=404)
+            return Response({"error": "Employee not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

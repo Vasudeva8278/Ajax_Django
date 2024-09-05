@@ -236,12 +236,19 @@
                 }
             });
         });
-         $('.delete-btn').click(function () {
+
+
+        $(document).ready(function () {
+    $('.delete-btn').click(function () {
         var employeeId = $(this).data('id');
+
         if (confirm('Are you sure you want to delete this employee?')) {
             $.ajax({
                 url: `/employee/delete/${employeeId}/`,
-                method: 'POST',  // Change from DELETE to POST
+                type: 'DELETE',  // Use DELETE method for the request
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')  // Include CSRF token for security
+                },
                 success: function (response) {
                     alert(response.message);
                     $('#employee-' + employeeId).remove();  // Remove employee row from the table
@@ -253,6 +260,23 @@
             });
         }
     });
+
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
     </script>
 </body>
 </html>
